@@ -31,8 +31,8 @@ The goal of this project is to gain deep, practical understanding of:
 - Memory Controller
 
 ### HPS<-->FPGA Software Flow
- HPS based C program Compilation Flow
- Complete HPS to FPGA's BRAM automated executable program flow
+- HPS based C program Compilation Flow
+-Complete HPS to FPGA's BRAM automated executable program flow
  
 ### 🧪 Verification
 - ModelSim Testbenches  
@@ -49,17 +49,17 @@ The goal of this project is to gain deep, practical understanding of:
 ---
 
 ## 📁 Repository Structure
-RISCV-SoC-FPGA/
-│
-├── assembly/ # RISC-V assembly programs
-├── rtl/ # Processor RTL (VHDL)
-│ ├── single_cycle/
-│ ├── pipelined/
-│ └── common/
-│
-├── peripherals/ # SPI, LCD, Buttons, Memory Controller
-├── fpga/ # FPGA top-level + constraints
-├── simulation/ # Testbenches + ModelSim scripts
-├── results/ # Waveforms, FPGA outputs
-└── docs/ # Design notes and architecture
+RISCV-SoC-FPGA/  
+│  
+├── assembly/ # RISC-V assembly programs  
+├── rtl/ # Processor RTL (VHDL)  
+│ ├── single_cycle/  
+│ ├── pipelined/  
+│ └── common/  
+│  
+├── peripherals/ # SPI, LCD, Buttons, Memory Controller  
+├── fpga/ # FPGA top-level + constraints  
+├── simulation/ # Testbenches + ModelSim scripts  
+├── results/ # Waveforms, FPGA outputs  
+└── docs/ # Design notes and architecture  
 
