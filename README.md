@@ -31,7 +31,7 @@ The goal of this project is to gain deep, practical understanding of:
 - Memory Controller
 
 ### HPS<-->FPGA Software Flow
-- HPS based C program Compilation Flow
+- HPS based C program Compilation Flow  
 -Complete HPS to FPGA's BRAM automated executable program flow
  
 ### 🧪 Verification
