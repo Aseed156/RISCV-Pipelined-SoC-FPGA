@@ -1,0 +1,318 @@
+library IEEE;
+use IEEE.std_logic_1164.all;
+use work.mycomponents.all;
+
+
+entity RISCV is
+port
+  (
+    top_clk : in std_logic;
+	 top_reset   : in std_logic;
+	 --PC_Out_Debug : out std_logic_vector(31 downto 0);
+	 SEL : IN STD_LOGIC_VECTOR(3 downto 0);
+	 CLK : IN STD_LOGIC;
+	 DATA_OUT : OUT STD_LOGIC_VECTOR(6 downto 0);
+	 ANODES_OUT : OUT STD_LOGIC_VECTOR(7 downto 0)
+	 );
+end RISCV;
+
+architecture Structural of RISCV is
+
+--Program Counter Signals
+signal PC_in : std_logic_vector(31 downto 0);
+signal PC_out_sig : std_logic_vector(31 downto 0);
+
+--Instruction Memory  (Will Use PC_Out as Input)
+--Instruction Decoder 
+signal Instr_to_Decode : std_logic_vector(31 downto 0);
+
+--Instruction Decoder to Register File Signals
+signal rs1_to_read_register1 : std_logic_vector (4 downto 0);
+signal rs2_to_read_register2 : std_logic_vector (4 downto 0);
+signal rd_to_write_register  : std_logic_vector (4 downto 0);
+
+--Control Unit to Register File
+signal register_write_signal : std_logic;
+
+--Final Result to Register
+signal final_result          : std_logic_vector(31 downto 0);
+
+--Instruction Decoder to Control Unit
+signal opcode : std_logic_vector(6 downto 0);
+
+--Instruction Decoder to ALU Control
+signal decoder_to_ALUcontrol_funct3 : std_logic_vector(2 downto 0);
+signal decoder_to_ALUcontrol_funct7_5 : std_logic;
+signal control_to_ALUop : std_logic_vector(1 downto 0);
+
+--Instruction Decoder to Immediate Input
+signal decoder_to_immediate_in : std_logic_vector(24 downto 0);
+
+--Control Unit to Immediate Input
+signal control_to_immediate_src : std_logic_vector(2 downto 0);
+
+--Immediate Generator Out
+signal immediate_out : std_logic_vector(31 downto 0);
+
+--Signals to Operand 1 MUX
+signal readdata1 : std_logic_vector(31 downto 0);
+signal ALUSrc2 : std_logic;
+
+
+--Signals to Operand 2 MUX
+--signal immendiate_to_operan2 : std_logic_vector(31 downto 0);
+signal readdata2 : std_logic_vector(31 downto 0);
+signal ALUSrc1 : std_logic;
+
+--Signals to ALU
+signal ALU_Operand1 : std_logic_vector(31 downto 0);
+signal ALU_Operand2 : std_logic_vector(31 downto 0);
+signal ALU_Result   : std_logic_vector(31 downto 0);
+signal ALUControl_to_ALU : std_logic_vector(3 downto 0);
+
+--Signal to Data Memory
+signal control_memwrite : std_logic;
+
+
+--PC_Decision Module signals
+signal controlPCSrc_To_PCDecisionModule : std_logic;
+signal controlJump_To_PCDecisionModule : std_logic;
+signal controlBranch_To_PCDecisionModule : std_logic;
+signal PCDecisionModule_To_PCIn : std_logic_vector(31 downto 0);
+
+--Signals to Write Back Mux
+signal memdata_to_writeback : std_logic_vector(31 downto 0);
+signal MemToReg_sel         : std_logic;
+signal MemToReg_to_lui      : std_logic_vector(31 downto 0);
+
+--Signals to LUI Mux
+signal Lui_sel             : std_logic;
+
+--SIGNAL FROM 'CLK_Div' TO THE 'Digit_Selector'
+SIGNAL SCLK : STD_LOGIC;
+
+--SIGNAL FROM THE 'Digit_Selector' TO THE 'MUX_16X1' AS WELL AS THE HARDWARE
+SIGNAL DIGIT_SEL : STD_LOGIC_VECTOR(3 downto 0);
+
+--SIGNAL 'MUX_OUT' THAT WILL BE OUTPUT OF 'MUX_16X1' AND INPUT TO THE 'MUX_Decoder'
+SIGNAL MUX_OUT : STD_LOGIC_VECTOR(3 downto 0);
+
+--SIGNAL USED FOR FETERMINING WHAT TO BE DISPLAY ON THE SEVEN-SEGMENT DISPLAY
+SIGNAL HEXOUT : STD_LOGIC_VECTOR(31 downto 0);
+
+-- Add this right below your other SIGNAL declarations
+SIGNAL ANODES_SIG : STD_LOGIC_VECTOR(7 downto 0);
+
+-- Internal Active-High Signals for physical buttons
+SIGNAL INTERNAL_CLK   : std_logic;
+SIGNAL INTERNAL_RESET : std_logic;
+
+-------------------------------------------------------------------------------------
+begin
+--Program Counter
+  PC_inst : PC
+  port map(
+        PC_in=>PCDecisionModule_To_PCIn  
+        ,reset=>INTERNAL_RESET  
+        ,clk=>INTERNAL_CLK   
+        ,PC_out=>PC_out_sig
+		  );
+		  
+
+--Instruction Memory
+   Instruction_Memory_inst : instruction_memory
+   port map(
+			addr=>PC_out_sig,
+			instr=>Instr_to_Decode
+	);	
+	
+--Decoder
+
+	Decoder_inst : Decoder 
+	port map (
+			instr=>Instr_to_Decode, 
+        opcode=>opcode,
+        rs1=>rs1_to_read_register1,
+        rs2=>rs2_to_read_register2,
+        rd=>rd_to_write_register,
+		  immediate_in=>decoder_to_immediate_in,
+		  funct3=>decoder_to_ALUcontrol_funct3,
+		  funct7_5=>decoder_to_ALUcontrol_funct7_5
+		);
+--Register File
+	Register_File_inst : Register_File 
+	port map (
+			clk=>INTERNAL_CLK,
+			reset=>INTERNAL_RESET,
+			read_register1=>rs1_to_read_register1,
+			read_register2=>rs2_to_read_register2,
+			write_register=>rd_to_write_register,
+			read_data1=>readdata1,
+			read_data2=>readdata2,
+			register_write=>register_write_signal,
+			write_data=>final_result
+	);
+	
+--Immediate Generator
+	Immediate_Generator_inst : Immendiate_Generator
+	port map(
+	IMMEDIATE_IN=>decoder_to_immediate_in,
+	IMMSrc=>control_to_immediate_src,
+	IMMEDIATE_OUT=>immediate_out
+	);
+--Control Unit
+	Control_Unit_inst : Control_Unit
+	port map (
+        opcode=>opcode,
+        immsrc=>control_to_immediate_src,
+        memToreg=>MemToReg_sel ,
+		  luisrc=>Lui_sel,
+        alusrc1=>ALUSrc1,
+		  alusrc2=>ALUSrc2,
+        pcsrc=>controlPCSrc_To_PCDecisionModule,
+        aluop=>control_to_ALUop,
+        branch=>controlBranch_To_PCDecisionModule,
+        jump=>controlJump_To_PCDecisionModule,
+        memwrite=>control_memwrite,
+        regwrite=>register_write_signal
+	);
+--ALU Control
+	alu_controller_inst : alu_controller
+	port map (
+		  op5=>opcode(5),
+        funct3=>decoder_to_ALUcontrol_funct3,
+        funct7_5=>decoder_to_ALUcontrol_funct7_5,
+        ALUOp=>control_to_ALUop,
+        ALUControl=>ALUControl_to_ALU
+	);
+--ALU 
+	ALU_inst : ALU
+	port map (
+		ALU_Operand1=>ALU_Operand1,
+		ALU_Operand2=>ALU_Operand2,
+		ALU_Control=>ALUControl_to_ALU,
+		ALU_Result=>ALU_Result
+	);
+--Data Memory
+
+	Data_Memory_inst : Data_Memory
+	port map(
+	clk=>INTERNAL_CLK,
+	address=>ALU_Result(9 downto 2),
+	data_rd=>memdata_to_writeback,
+	data_wr=>readdata2,
+	Mem_Write=>control_memwrite
+	);
+--PC Decision Module 
+	PC_Decision_Module_inst : PC_Decision_Module 
+	port map(
+	 PC_in=>PC_out_sig,
+    RS1=>readdata1,
+    OFFSET=>immediate_out,
+    BRANCH=>controlBranch_To_PCDecisionModule,
+    JUMP=>controlJump_To_PCDecisionModule,
+    PCSrc=>controlPCSrc_To_PCDecisionModule,
+    ALU_RESULT=>ALU_Result(0),
+    PC_out=>PCDecisionModule_To_PCIn
+	 );
+	 
+
+-- ALU Operand 1 MUX
+	ALUOperand1 : MUX
+   port map(
+    IN_1=>readdata1,
+	 IN_2=>PC_out_sig,
+	 SEL=>ALUSrc2,
+	 MUX_Out=>ALU_Operand1
+	 ); 
+	 
+-- ALU Operand 2 MUX
+	ALUOperand2 : MUX
+   port map(
+    IN_1=>readdata2,
+	 IN_2=>immediate_out,
+	 SEL=>ALUSrc1,
+	 MUX_Out=>ALU_Operand2
+	 ); 
+
+-- Memory to Register MUX
+	MemtoReg_Mux : MUX
+   port map(
+    IN_1=>ALU_Result,
+	 IN_2=>memdata_to_writeback,
+	 SEL=>MemToReg_sel ,
+	 MUX_Out=>MemToReg_to_lui
+	 ); 
+	 
+-- LUI MUX
+	LUI_Mux : MUX
+   port map(
+    IN_1=>MemToReg_to_lui,
+	 IN_2=>immediate_out,
+	 SEL=>Lui_sel,
+	 MUX_Out=>final_result
+	 ); 
+	 
+	 
+	--THIS PART INSTANTIATES AND INITIALIZES FOR THE SEVEN-SEGMENT DISPLAY COMPONENTS
+	Clock_Divider : CLK_Div
+	PORT MAP(
+		CLK => CLK,
+		RESET => INTERNAL_RESET,
+		SCLK => SCLK
+	);
+	
+	DIG_SEL : Digit_Selector 
+	PORT MAP(
+		CLK => SCLK,
+		RESET => INTERNAL_RESET,
+		DIGITS => ANODES_SIG 
+	);
+
+	
+	SSD_MUX : MUX_16X1
+	PORT MAP(
+		  -- LEFT BOARD (Reading Left to Right: D4, D5, D6, D7)
+        D4 => HEXOUT(31 downto 28), -- Far-Left Digit
+        D5 => HEXOUT(27 downto 24), 
+        D6 => HEXOUT(23 downto 20), 
+        D7 => HEXOUT(19 downto 16), 
+        
+        -- RIGHT BOARD (Reading Left to Right: D0, D1, D2, D3)
+        D0 => HEXOUT(15 downto 12), 
+        D1 => HEXOUT(11 downto 8),  
+        D2 => HEXOUT(7 downto 4),   
+        D3 => HEXOUT(3 downto 0),   -- Far-Right Digit
+        
+        SEL => ANODES_SIG,
+        OUTPUT => MUX_OUT
+	);
+	
+	
+	DecodeR_MUX : MUX_Decoder
+	PORT MAP(
+		INPUTS => MUX_OUT,
+		ANODES => DATA_OUT
+	);
+	 
+	--PC_Out_Debug<=PC_out_sig;
+	ANODES_OUT <= ANODES_SIG;	
+	
+	INTERNAL_CLK <= NOT top_clk;
+	INTERNAL_RESET <= NOT top_reset;
+	
+	WITH SEL SELECT 
+        HEXOUT <= Instr_to_Decode      WHEN "0000",
+                  MemToReg_to_lui      WHEN "0001",
+                  ALU_Result           WHEN "0010",
+                  final_result         WHEN "0011",
+                  readdata1            WHEN "0100",
+                  readdata2            WHEN "0101",
+                  immediate_out        WHEN "0110",
+                  memdata_to_writeback WHEN "0111",
+                  PC_out_sig           WHEN OTHERS; 
+
+end Structural;	 
+	 
+	 
+	 
