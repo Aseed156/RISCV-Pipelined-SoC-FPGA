@@ -1,0 +1,89 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.NUMERIC_STD.all;
+
+entity ALU is 
+port (
+
+   ALU_Operand1: in std_logic_vector(31 downto 0);
+	ALU_Operand2: in std_logic_vector(31 downto 0);
+	ALU_Control : in std_logic_vector(3 downto 0);
+	ALU_Result : out std_logic_vector(31 downto 0)
+);
+end ALU;
+
+architecture Behavioral of ALU is
+
+  signal operand1, operand2, ALU_Out : std_logic_vector(31 downto 0);
+begin
+      operand1<=ALU_Operand1;
+		operand2<=ALU_Operand2;
+  process(operand1,operand2, ALU_Control)
+    begin
+      
+      case ALU_Control is
+			--Addition
+           when "0000" => 
+			     ALU_Out<=std_logic_vector(unsigned(operand1) + unsigned(operand2));
+			--Subtraction	  
+			  when "0001" =>
+			     ALU_Out<=std_logic_vector(unsigned(operand1) - unsigned(operand2));
+		
+			--AND 
+				when "0010" =>
+			     ALU_Out<= operand1 and operand2;
+				  
+			--OR 
+				when "0011" =>
+			     ALU_Out<= operand1 or operand2;
+			
+			--XOR 
+				when "0100" =>
+			     ALU_Out<= operand1 xor operand2;	
+				  
+			--SLL (Shift Left Logical)
+				when "0101" =>
+				  ALU_Out<= std_logic_vector(shift_left(unsigned(operand1), to_integer(unsigned(operand2(4 downto 0)))));
+			
+			--SRL (Shift Right Logical)
+		       when "0110" =>
+				  ALU_Out<= std_logic_vector(shift_right(unsigned(operand1), to_integer(unsigned(operand2(4 downto 0))))); 
+				  
+			--SRA (Shift Right Arithematic)
+             when "0111" =>
+		        ALU_Out<= std_logic_vector(shift_right(signed(operand1), to_integer(unsigned(operand2(4 downto 0)))));		 
+				  
+			--SLT (Set Less Than)
+			    when "1000" =>
+				   if signed(operand1) < signed(operand2) then
+					   ALU_Out<=(others=>'0');     --Set rd=1 if rs<rt
+						ALU_Out(0)<='1';
+					else
+				      ALU_Out<=(others=>'0');
+					end if;
+					
+			--SLTU (Set Less Than Unsigned)
+			    when "1001" =>
+				   if unsigned(operand1) < unsigned(operand2) then
+					   ALU_Out<=(others=>'0');    --Set rd=1 if rs<rt
+						ALU_Out(0)<='1';
+					else
+				      ALU_Out<=(others=>'0');
+					end if;	
+				
+			     when others =>
+				      ALU_Out<=(others=>'1');
+						
+				end case;
+		
+		end process;
+		
+		 ALU_Result<=ALU_Out;
+		 
+end Behavioral;
+		
+				 
+				 
+	
+	
+	
