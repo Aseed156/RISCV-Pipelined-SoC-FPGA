@@ -21,7 +21,8 @@ The goal of this project is to gain deep, practical understanding of:
 - Hardware based LCD Driver (ILI9341)  
 - Button Synchronizer (Metastability-safe input handling)  
 - Memory Controller
-- **Graphics Display Module** — FPGA-Based 2D Graphics Engine (submodule): full hardware SPI + LCD controller pipeline driving an ILI9341 TFT, with parallel physics entities (bouncing balls, rectangles), bitmap text rendering, and a hardware Pong game. No software involvement — see [FPGA-Graphics-Engine repo](#) for full details.
+- **Graphics Display Module** — FPGA-Based 2D Graphics Engine (submodule): full hardware SPI + LCD controller pipeline driving an ILI9341 TFT, with parallel physics entities (bouncing balls, rectangles), bitmap text rendering, and a hardware Pong game. No software involvement — see Aseed156/FPGA-Based-2D-Graphics-Engine---SPI-Controller-ILI9341
+for full details.
 ### HPS<-->FPGA Software Flow
 - HPS based C program Compilation Flow  
 -Complete HPS to FPGA's BRAM automated executable program flow
